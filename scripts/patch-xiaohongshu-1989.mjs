@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
+const FLASH_LITE_MODEL = "gemini-2.5-flash-lite";
+
+// ---------------------------------------------------------------------------
+// Xiaohongshu: 1989 story-world guard + cheap background model routing
+// ---------------------------------------------------------------------------
 const enginePath = path.join(process.cwd(), "lib", "xiaohongshu-engine.ts");
 let source = fs.readFileSync(enginePath, "utf8");
 const original = source;
@@ -99,9 +104,105 @@ if (source.includes(oldAssemblerLine)) {
   throw new Error("[patch-xiaohongshu-1989] character prompt assembly marker not found");
 }
 
+// Route every Xiaohongshu request through Gemini 2.5 Flash-Lite while keeping
+// the user's existing Google API key/base URL and other connection settings.
+const xhsApiMarker = "function resolveGlobalApiConfig(): ApiConfig | null {\n";
+const xhsApiHelper = `const XIAOHONGSHU_BACKGROUND_MODEL = "${FLASH_LITE_MODEL}";
+
+function forceXiaohongshuFlashLite(apiConfig: ApiConfig | null): ApiConfig | null {
+  if (!apiConfig) return null;
+  const provider = (apiConfig.provider || "").trim().toLowerCase();
+  if (!provider.includes("google") && !provider.includes("gemini")) return apiConfig;
+  return {
+    ...apiConfig,
+    defaultModel: XIAOHONGSHU_BACKGROUND_MODEL,
+    enableNativeTools: false,
+  };
+}
+
+`;
+if (!source.includes("function forceXiaohongshuFlashLite(")) {
+  replaceOnce(xhsApiMarker, xhsApiHelper + xhsApiMarker, "Xiaohongshu Flash-Lite helper");
+}
+
+replaceOnce(
+  "    return configs.find(config => config.id === binding.globalDefaults.apiConfigId) ?? null;\n",
+  "    return forceXiaohongshuFlashLite(configs.find(config => config.id === binding.globalDefaults.apiConfigId) ?? null);\n",
+  "Xiaohongshu global API binding",
+);
+replaceOnce(
+  "  return configs[0] ?? null;\n",
+  "  return forceXiaohongshuFlashLite(configs[0] ?? null);\n",
+  "Xiaohongshu global API fallback",
+);
+
+replaceOnce(
+  `  const apiConfig = activeSlot.apiConfigId
+    ? loadApiConfigs().find(config => config.id === activeSlot.apiConfigId) ?? null
+    : null;
+`,
+  `  const apiConfig = activeSlot.apiConfigId
+    ? forceXiaohongshuFlashLite(loadApiConfigs().find(config => config.id === activeSlot.apiConfigId) ?? null)
+    : null;
+`,
+  "Xiaohongshu character API binding",
+);
+
 if (source !== original) {
   fs.writeFileSync(enginePath, source, "utf8");
-  console.log("[patch-xiaohongshu-1989] applied 1989 story-world guard to Xiaohongshu generation");
+  console.log(`[patch-xiaohongshu-1989] applied 1989 guard + ${FLASH_LITE_MODEL} routing to Xiaohongshu`);
 } else {
-  console.log("[patch-xiaohongshu-1989] already patched");
+  console.log("[patch-xiaohongshu-1989] Xiaohongshu already patched");
+}
+
+// ---------------------------------------------------------------------------
+// Shopping: use Gemini Flash-Lite for catalog refresh/search generation.
+// ---------------------------------------------------------------------------
+const shoppingPath = path.join(process.cwd(), "lib", "shopping-engine.ts");
+let shoppingSource = fs.readFileSync(shoppingPath, "utf8");
+const shoppingOriginal = shoppingSource;
+
+function replaceShoppingOnce(oldText, newText, label) {
+  if (shoppingSource.includes(newText)) return;
+  if (!shoppingSource.includes(oldText)) {
+    throw new Error(`[patch-shopping-flash-lite] marker not found: ${label}`);
+  }
+  shoppingSource = shoppingSource.replace(oldText, newText);
+}
+
+const shoppingApiMarker = "function resolveShoppingApiConfig(): ApiConfig | null {\n";
+const shoppingApiHelper = `const SHOPPING_BACKGROUND_MODEL = "${FLASH_LITE_MODEL}";
+
+function forceShoppingFlashLite(apiConfig: ApiConfig | null): ApiConfig | null {
+  if (!apiConfig) return null;
+  const provider = (apiConfig.provider || "").trim().toLowerCase();
+  if (!provider.includes("google") && !provider.includes("gemini")) return apiConfig;
+  return {
+    ...apiConfig,
+    defaultModel: SHOPPING_BACKGROUND_MODEL,
+    enableNativeTools: false,
+  };
+}
+
+`;
+if (!shoppingSource.includes("function forceShoppingFlashLite(")) {
+  replaceShoppingOnce(shoppingApiMarker, shoppingApiHelper + shoppingApiMarker, "Shopping Flash-Lite helper");
+}
+
+replaceShoppingOnce(
+  "    return configs.find(config => config.id === binding.globalDefaults.apiConfigId) ?? null;\n",
+  "    return forceShoppingFlashLite(configs.find(config => config.id === binding.globalDefaults.apiConfigId) ?? null);\n",
+  "Shopping global API binding",
+);
+replaceShoppingOnce(
+  "  return configs[0] ?? null;\n",
+  "  return forceShoppingFlashLite(configs[0] ?? null);\n",
+  "Shopping global API fallback",
+);
+
+if (shoppingSource !== shoppingOriginal) {
+  fs.writeFileSync(shoppingPath, shoppingSource, "utf8");
+  console.log(`[patch-shopping-flash-lite] routed Shopping generation to ${FLASH_LITE_MODEL}`);
+} else {
+  console.log("[patch-shopping-flash-lite] Shopping already patched");
 }
