@@ -131,7 +131,11 @@ export function PhoneCalendarApp({
   onClose: () => void;
   onNotice?: (text: string) => void;
 }) {
-  const todayIso = formatIsoDate(new Date());
+  const [todayIso, setTodayIso] = useState(() => formatIsoDate(new Date()));
+  useEffect(() => {
+    const timer = window.setInterval(() => setTodayIso(formatIsoDate(new Date())), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [owners, setOwners] = useState<OwnerOption[]>(() => buildOwnerOptions());
   const [selectedKey, setSelectedKey] = useState<string>(() => owners[0]?.key ?? "user:me");
   const [view, setView] = useState<"month" | "detail">("month");

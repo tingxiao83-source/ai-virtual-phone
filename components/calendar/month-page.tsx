@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { ChevronLeft, Palette } from "lucide-react";
 import type { CalendarScheduleItem } from "@/lib/calendar-types";
 import type { MenstrualDayState } from "@/lib/menstrual-storage";
-import { formatIsoDate } from "@/lib/calendar-utils";
+import { formatIsoDate, parseIsoDate, calendarDisplayYear } from "@/lib/calendar-utils";
 import { getLunarInfoByIso } from "@/lib/lunar";
 
 const MONTH_CN = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
@@ -28,7 +28,7 @@ type MonthBlock = {
 
 /** 构建 today ±12 个月的月历数据（农历只算一次） */
 function buildMonths(todayIso: string): MonthBlock[] {
-  const today = new Date(`${todayIso}T00:00:00`);
+  const today = parseIsoDate(todayIso);
   const blocks: MonthBlock[] = [];
   for (let m = -12; m <= 12; m++) {
     const first = new Date(today.getFullYear(), today.getMonth() + m, 1);
@@ -77,7 +77,7 @@ export function CalendarMonthPage({
 }) {
   const months = useMemo(() => buildMonths(todayIso), [todayIso]);
   const todayYm = useMemo(() => {
-    const d = new Date(`${todayIso}T00:00:00`);
+    const d = parseIsoDate(todayIso);
     return `${d.getFullYear()}-${d.getMonth()}`;
   }, [todayIso]);
   const [titleYm, setTitleYm] = useState(todayYm);
@@ -136,7 +136,8 @@ export function CalendarMonthPage({
     });
   };
 
-  const [titleYear, titleMonth] = titleYm.split("-").map(Number);
+  const [realTitleYear, titleMonth] = titleYm.split("-").map(Number);
+  const titleYear = calendarDisplayYear(realTitleYear);
 
   return (
     <div className="calendar-page calendar-page-month">

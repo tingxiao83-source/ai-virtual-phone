@@ -1,3 +1,4 @@
+import { STORY_YEAR } from "./story-clock";
 import { loadChatAppSettings } from "./chat-storage";
 import { formatZonedPromptTimestamp, getSystemTimeZone } from "./character-time";
 
@@ -49,7 +50,7 @@ export function formatPromptTimestamp(isoStr: string, options?: PromptTimestampO
     return `(${formatZonedPromptTimestamp(date, timeZone, options.includeTimeZone === true)})`;
   }
   const pad = (n: number) => n < 10 ? `0${n}` : `${n}`;
-  return `(${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())})`;
+  return `(${STORY_YEAR}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())})`;
 }
 
 export function formatPromptEventLabel(label: string, timestamp: string, timeAware?: boolean, timestampOptions?: PromptTimestampOptions): string {

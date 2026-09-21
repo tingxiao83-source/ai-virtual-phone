@@ -2,6 +2,7 @@
 // Macro expansion engine.
 // Uses regex-based iterative innermost-first expansion.
 
+import { STORY_YEAR } from "./story-clock";
 import { buildCharacterTimeContext, getSystemTimeZone } from "./character-time";
 
 const TRIM_SENTINEL = "\x00TRIM\x00";
@@ -249,7 +250,7 @@ export class MacroEngine {
         // time — shortcut for current datetime like "2026年3月2日15:40"
         if (body === "time") {
             const now = new Date();
-            return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+            return `${STORY_YEAR}年${now.getMonth() + 1}月${now.getDate()}日${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
         }
 
         if (body === "weekday") {
@@ -329,7 +330,7 @@ export class MacroEngine {
             return formatTimestamp(format);
         }
         if (body === "timestamp") {
-            return new Date().toISOString();
+            return formatTimestamp("YYYY-MM-DD HH:mm:ss");
         }
 
         // Unrecognized macro — leave as-is (return with braces so it doesn't loop)
@@ -349,8 +350,8 @@ function formatTimestamp(format: string): string {
     const pad = (n: number, len = 2) => String(n).padStart(len, "0");
 
     return format
-        .replace(/YYYY/g, String(now.getFullYear()))
-        .replace(/YY/g, String(now.getFullYear()).slice(-2))
+        .replace(/YYYY/g, String(STORY_YEAR))
+        .replace(/YY/g, String(STORY_YEAR).slice(-2))
         .replace(/MM/g, pad(now.getMonth() + 1))
         .replace(/DD/g, pad(now.getDate()))
         .replace(/HH/g, pad(now.getHours()))

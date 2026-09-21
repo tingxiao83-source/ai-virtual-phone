@@ -1,3 +1,4 @@
+import { shoppingEraContext } from "./story-clock";
 import { previewMessagesForApi, sendLLMRequest } from "./chat-engine";
 import { loadApiConfigs, loadBindingConfig } from "./settings-storage";
 import type { CheckPhoneShoppingProduct, CheckPhoneShoppingTone } from "./checkphone-config";
@@ -6,7 +7,7 @@ import type { ShoppingCatalog, ShoppingCategory, ShoppingRefreshResult, Shopping
 import type { LLMMessage } from "./llm-prompt-assembler";
 
 export const SHOPPING_RECOMMENDATION_CATEGORIES: Array<Pick<ShoppingCategory, "id" | "title" | "subtitle">> = [
-  { id: "digital", title: "数码好物", subtitle: "小设备、桌面装备、智能配件" },
+  { id: "digital", title: "电器钟表", subtitle: "收音机、磁带、钟表和当时可购置的家用电器" },
   { id: "home", title: "生活家居", subtitle: "收纳、香氛、餐厨与居家质感" },
   { id: "style", title: "穿搭配饰", subtitle: "服饰、包袋、鞋履和日常搭配" },
   { id: "beauty", title: "美妆个护", subtitle: "护肤、彩妆、身体护理和仪容工具" },
@@ -29,7 +30,7 @@ export const DEFAULT_SHOPPING_REFRESH_PROMPT = [
   "",
   "输出格式：",
   "#推荐1",
-  "[分类]数码好物",
+  "[分类]电器钟表",
   "[名称]商品名称",
   "[店铺]店铺名称",
   "[价格]价格",
@@ -38,7 +39,7 @@ export const DEFAULT_SHOPPING_REFRESH_PROMPT = [
   "[图标]商品图标",
   "",
   "#推荐2",
-  "[分类]数码好物",
+  "[分类]电器钟表",
   "[名称]商品名称",
   "[店铺]店铺名称",
   "[价格]价格",
@@ -99,13 +100,26 @@ type ParsedRecommendationBlock = {
   fields: Record<string, string>;
 };
 
+const SHOPPING_BACKGROUND_MODEL = "gemini-2.5-flash-lite";
+
+function forceShoppingFlashLite(apiConfig: ApiConfig | null): ApiConfig | null {
+  if (!apiConfig) return null;
+  const provider = (apiConfig.provider || "").trim().toLowerCase();
+  if (!provider.includes("google") && !provider.includes("gemini")) return apiConfig;
+  return {
+    ...apiConfig,
+    defaultModel: SHOPPING_BACKGROUND_MODEL,
+    enableNativeTools: false,
+  };
+}
+
 function resolveShoppingApiConfig(): ApiConfig | null {
   const configs = loadApiConfigs();
   const binding = loadBindingConfig();
   if (binding.globalDefaults.apiConfigId) {
-    return configs.find(config => config.id === binding.globalDefaults.apiConfigId) ?? null;
+    return forceShoppingFlashLite(configs.find(config => config.id === binding.globalDefaults.apiConfigId) ?? null);
   }
-  return configs[0] ?? null;
+  return forceShoppingFlashLite(configs[0] ?? null);
 }
 
 function cleanText(value: unknown, maxLength: number): string {
@@ -300,7 +314,7 @@ export async function generateShoppingCatalog(refreshPrompt: string): Promise<Sh
     const rawOutput = await sendLLMRequest(
       apiConfig,
       null,
-      [{ role: "user", content: refreshPrompt || DEFAULT_SHOPPING_REFRESH_PROMPT }],
+      [{ role: "system", content: shoppingEraContext() }, { role: "user", content: refreshPrompt || DEFAULT_SHOPPING_REFRESH_PROMPT }],
       [],
       { characterName: "购物App" },
       { skipOutputRegex: true, appId: "shopping" },
@@ -340,7 +354,7 @@ export async function generateShoppingSearchResults(query: string, searchPrompt:
     const rawOutput = await sendLLMRequest(
       apiConfig,
       null,
-      [{ role: "user", content: applySearchPromptTemplate(searchPrompt, normalizedQuery) }],
+      [{ role: "system", content: shoppingEraContext() }, { role: "user", content: applySearchPromptTemplate(searchPrompt, normalizedQuery) }],
       [],
       { characterName: "购物App" },
       { skipOutputRegex: true, appId: "shopping_search" },
@@ -381,7 +395,7 @@ export async function previewShoppingPromptPayload(
   const prompt = mode === "search"
     ? applySearchPromptTemplate(params?.searchPrompt || DEFAULT_SHOPPING_SEARCH_PROMPT, params?.query?.trim() || "礼物")
     : (params?.refreshPrompt || DEFAULT_SHOPPING_REFRESH_PROMPT);
-  const messages = [{ role: "user" as const, content: prompt, _debugMeta: { marker: mode === "search" ? "shopping_search" : "shopping_catalog" } }];
+  const messages: LLMMessage[] = [{ role: "system", content: shoppingEraContext() }, { role: "user" as const, content: prompt, _debugMeta: { marker: mode === "search" ? "shopping_search" : "shopping_catalog" } }];
   return {
     messages: previewMessagesForApi(apiConfig, null, messages),
     characterName: mode === "search" ? "购物搜索" : "购物App",

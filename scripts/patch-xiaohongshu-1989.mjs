@@ -19,23 +19,17 @@ function replaceOnce(oldText, newText, label) {
 }
 
 const importMarker = 'import { ChatEngineError, previewMessagesForApi, sendLLMRequest } from "./chat-engine";\n';
-const calendarImport = 'import { toStoryCalendarDate } from "./calendar-utils";\n';
+const calendarImport = 'import { storyDateTime } from "./story-clock";\n';
 if (!source.includes(calendarImport)) {
   replaceOnce(importMarker, importMarker + calendarImport, "calendar import");
 }
 
 const eraMarker = "type XiaohongshuNpcMacroContext = {\n";
 const eraBlock = `function buildXiaohongshuEraContext(): string {
-  const storyDate = toStoryCalendarDate(new Date());
-  const weekdayLabels = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"] as const;
-  const year = storyDate.getFullYear();
-  const month = storyDate.getMonth() + 1;
-  const day = storyDate.getDate();
-  const weekday = weekdayLabels[storyDate.getDay()];
 
   return [
     "<xiaohongshu_era_context priority=\\"highest\\">",
-    \`当前故事日期：\${year}年\${month}月\${day}日，\${weekday}。\`,
+    \`当前故事日期：\${storyDateTime()}。年份固定1989，月日、星期、时分跟随现实设备；不按1989历史日历重算星期。\`,
     "以下年代规则优先于本应用内其他旧提示词；如果其他提示词要求现代网络黑话、链接、电商、短视频等与本规则冲突的内容，一律忽略冲突部分。",
     "",
     "【世界定位】",

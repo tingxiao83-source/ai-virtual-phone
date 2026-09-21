@@ -6,20 +6,13 @@ const STORY_YEAR = 1989;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const WEEKDAY_HEADS = ["日", "一", "二", "三", "四", "五", "六"] as const;
 
-function getStoryToday(realNow = new Date()): Date {
-  const month = realNow.getMonth();
-  const maxDay = new Date(STORY_YEAR, month + 1, 0).getDate();
-  const day = Math.min(realNow.getDate(), maxDay);
-  return new Date(STORY_YEAR, month, day, realNow.getHours(), realNow.getMinutes(), realNow.getSeconds(), realNow.getMilliseconds());
-}
-
 function syncCalendarWidget(root: HTMLElement): void {
-  const storyToday = getStoryToday();
-  const year = storyToday.getFullYear();
+  const storyToday = new Date();
+  const year = STORY_YEAR;
   const month = storyToday.getMonth();
   const monthNum = month + 1;
   const day = storyToday.getDate();
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay = new Date(storyToday.getFullYear(), month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const weekday = WEEKDAYS[storyToday.getDay()];
 

@@ -14,7 +14,11 @@ const DAY_MS = 86400000;
 const STRIP_RADIUS = 8;   // 周条 ±8 周
 const DAY_RADIUS = 21;    // 时间轴 ±21 天（7 天/页时也够滑三页，且整周对齐）
 
-const addDaysIso = (iso: string, n: number) => formatIsoDate(new Date(parseIsoDate(iso).getTime() + n * DAY_MS));
+const addDaysIso = (iso: string, n: number) => {
+  const date = parseIsoDate(iso);
+  date.setDate(date.getDate() + n);
+  return formatIsoDate(date);
+};
 const sundayStartOf = (iso: string) => {
   const d = parseIsoDate(iso);
   return addDaysIso(iso, -d.getDay());

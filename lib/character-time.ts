@@ -1,3 +1,5 @@
+import { STORY_YEAR } from "./story-clock";
+
 export type CharacterTimeContext = {
   systemTime: string;
   systemWeekday: string;
@@ -85,12 +87,12 @@ function getDateParts(date: Date, timeZone: string): DateParts {
 
 export function formatZonedPromptTimestamp(date: Date, timeZone: string, includeTimeZone = false): string {
   const parts = getDateParts(date, timeZone);
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}${includeTimeZone ? ` ${timeZone}` : ""}`;
+  return `${STORY_YEAR}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}${includeTimeZone ? ` ${timeZone}` : ""}`;
 }
 
 export function formatZonedChineseDateTime(date: Date, timeZone: string): string {
   const parts = getDateParts(date, timeZone);
-  return `${Number(parts.year)}年${Number(parts.month)}月${Number(parts.day)}日${parts.hour}:${parts.minute}`;
+  return `${STORY_YEAR}年${Number(parts.month)}月${Number(parts.day)}日${parts.hour}:${parts.minute}`;
 }
 
 export function getZonedWeekday(date: Date, timeZone: string): string {
@@ -127,7 +129,7 @@ export function buildCharacterTimeContext(timeZone?: string | null, now = new Da
       characterTime: "",
       characterWeekday: "",
       characterTimeZone: "",
-      timeContext: `当前系统时间：${systemTime}，${systemWeekday}`,
+      timeContext: `当前故事时间（年份固定1989，月日、星期和时分按现实设备日历）：${systemTime}，${systemWeekday}`,
       hasDifference: false,
     };
   }
@@ -142,7 +144,7 @@ export function buildCharacterTimeContext(timeZone?: string | null, now = new Da
     characterWeekday,
     characterTimeZone: normalizedTimeZone,
     timeContext: [
-      `当前系统时间：${systemTime} ${systemTimeZone}，${systemWeekday}`,
+      `当前故事时间（年份固定1989，月日、星期和时分按现实设备日历）：${systemTime} ${systemTimeZone}，${systemWeekday}`,
       `角色本地时间：${characterTime} ${normalizedTimeZone}，${characterWeekday}`,
       "判断角色作息、问候、深夜/清晨/工作时间时，优先使用角色本地时间。",
     ].join("\n"),
@@ -170,7 +172,7 @@ export function buildGroupTimeContext(members: GroupTimeMember[], now = new Date
       characterTime: "",
       characterWeekday: "",
       characterTimeZone: "",
-      timeContext: `当前系统时间：${systemTime}，${systemWeekday}`,
+      timeContext: `当前故事时间（年份固定1989，月日、星期和时分按现实设备日历）：${systemTime}，${systemWeekday}`,
       hasDifference: false,
     };
   }
@@ -183,7 +185,7 @@ export function buildGroupTimeContext(members: GroupTimeMember[], now = new Date
     characterWeekday: "",
     characterTimeZone: "",
     timeContext: [
-      `当前系统时间：${systemTime} ${systemTimeZone}，${systemWeekday}`,
+      `当前故事时间（年份固定1989，月日、星期和时分按现实设备日历）：${systemTime} ${systemTimeZone}，${systemWeekday}`,
       "群成员本地时间：",
       ...rows,
       "判断每个角色作息、问候、深夜/清晨/工作时间时，优先使用该角色自己的本地时间。",

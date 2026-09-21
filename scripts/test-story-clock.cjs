@@ -1,0 +1,36 @@
+const fs = require('fs');
+const ts = require(process.cwd() + '/node_modules/typescript');
+const assert = require('node:assert/strict');
+const NativeDate = Date;
+let current = new NativeDate(2026,8,21,21,42,0);
+global.Date = class extends NativeDate { constructor(...args) {super(...(args.length ? args : [current.getTime()]));} static now(){return current.getTime();} };
+const modules = {};
+function load(name) {
+ if(modules[name]) return modules[name];
+ const source=fs.readFileSync('lib/'+name+'.ts','utf8');
+ const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const m={exports:{}}; new Function('module','exports','require',code)(m,m.exports,p=>load(p.replace('./','')));return modules[name]=m.exports;
+}
+const cal=load('calendar-utils'), story=load('story-clock'), time=load('character-time');
+assert.equal(story.storyDateTime(),'1989年9月21日，星期一 21:42');
+assert.equal(cal.formatIsoDate(new Date()),'1989-09-21');
+assert.equal(cal.getWeekdayLabel('1989-09-21'),'周一');
+assert.equal(cal.getWeekStartIso(new Date()),'1989-09-21');
+assert.equal(cal.getWeekDates('1989-09-21')[6],'1989-09-27');
+assert.equal(cal.parseIsoDate('1989-09-21').getFullYear(),2026);
+assert.match(time.buildCharacterTimeContext().systemTime,/1989年9月21日/);
+assert.equal(time.buildCharacterTimeContext().systemWeekday,'星期一');
+current=new NativeDate(2028,1,29,10,5);
+assert.equal(cal.formatIsoDate(new Date()),'1989-02-29');
+assert.equal(cal.parseIsoDate('1989-02-29').getDate(),29);
+assert.match(story.storyDateTime(),/1989年2月29日/);
+assert.equal(cal.getWeekDates('1989-02-28')[2],'1989-03-01');
+current=new NativeDate(2026,11,31,23,59);
+assert.match(story.storyDateTime(),/1989年12月31日/);
+current=new NativeDate(2027,0,1,0,0);
+assert.match(story.storyDateTime(),/1989年1月1日/);
+assert.equal(cal.formatIsoDate(new Date()),'1989-01-01');
+assert.match(story.shoppingEraContext(),/1989/);
+const dst = time.formatZonedChineseDateTime(new NativeDate('2026-07-01T12:00:00Z'),'Europe/London');
+assert.equal(dst,'1989年7月1日13:00');
+console.log('17 clock/calendar checks passed (weekday, month/week, leap day, year rollover, London DST).');
