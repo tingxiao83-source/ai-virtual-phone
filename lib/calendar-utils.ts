@@ -2,6 +2,36 @@ import type { CalendarColorKey, CalendarScheduleItem } from "./calendar-types";
 
 const WEEKDAY_LABELS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"] as const;
 
+/**
+ * 故事日历固定在 1989 年，但月份、日期和当前时间仍跟随现实系统。
+ * 例如现实 2026-09-21 15:30 -> 故事日历 1989-09-21 15:30。
+ */
+export const STORY_CALENDAR_YEAR = 1989;
+
+/**
+ * 仅把现实“今天”映射到故事年份，已经属于故事/历史日期的 Date 不改写。
+ * 这样日历视图、星期、农历、日程存储和角色日程都会使用 1989 的真实日期关系，
+ * 同时不会破坏对任意历史日期的普通日期运算。
+ */
+export function toStoryCalendarDate(date: Date): Date {
+  const result = new Date(date);
+  const now = new Date();
+
+  const isRealToday =
+    result.getFullYear() === now.getFullYear() &&
+    result.getMonth() === now.getMonth() &&
+    result.getDate() === now.getDate();
+
+  if (!isRealToday) return result;
+
+  const month = result.getMonth();
+  const maxDay = new Date(STORY_CALENDAR_YEAR, month + 1, 0).getDate();
+  const day = Math.min(result.getDate(), maxDay);
+
+  result.setFullYear(STORY_CALENDAR_YEAR, month, day);
+  return result;
+}
+
 /** 时间轴视图默认展示范围（仅影响显示，不再限制数据） */
 export const CALENDAR_HOUR_START = 0;
 export const CALENDAR_HOUR_END = 24;
@@ -33,9 +63,10 @@ export function sanitizeScheduleEmoji(value: unknown): string {
 }
 
 export function formatIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const storyDate = toStoryCalendarDate(date);
+  const year = storyDate.getFullYear();
+  const month = String(storyDate.getMonth() + 1).padStart(2, "0");
+  const day = String(storyDate.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -44,7 +75,8 @@ export function parseIsoDate(dateText: string): Date {
 }
 
 export function startOfWeek(date: Date): Date {
-  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const storyDate = toStoryCalendarDate(date);
+  const result = new Date(storyDate.getFullYear(), storyDate.getMonth(), storyDate.getDate());
   const day = result.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   result.setDate(result.getDate() + diff);
