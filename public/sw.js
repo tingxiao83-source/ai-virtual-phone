@@ -1,4 +1,4 @@
-const CACHE_VERSION = "ai-phone-pwa-v12";
+const CACHE_VERSION = "ai-phone-pwa-v13";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -129,7 +129,6 @@ self.addEventListener("notificationclick", (event) => {
   const notificationData = event.notification.data || {};
   const targetUrl = notificationData.url || "/";
   if (notificationData.type === "shortcut_command") {
-    // iOS silently ignores custom URL schemes passed to clients.openWindow().
     event.waitUntil((async () => {
       const absoluteUrl = new URL(targetUrl, self.location.origin).href;
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
