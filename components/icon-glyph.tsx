@@ -60,6 +60,7 @@ const MDI_PATHS: Record<IconId, string> = {
   xiaohongshu: mdiPackageVariant,
   checkphone: mdiCellphone,
   shopping: mdiShopping,
+  offline: mdiHeart,
   calendar: mdiCalendarMonth,
   interview_magazine: mdiMicrophone,
   vnmode: mdiScriptTextOutline,
