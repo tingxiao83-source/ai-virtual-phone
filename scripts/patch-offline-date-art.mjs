@@ -114,7 +114,7 @@ const portraitReplacement = `function Portrait({
             style={{
               width: "100%",
               height: "100%",
-              backgroundImage: `url(${spriteSrc})`,
+              backgroundImage: "url(" + spriteSrc + ")",
               backgroundSize: "400% 100%",
               backgroundPosition: offlineDateSpritePosition(spriteKind!, emotion),
               backgroundRepeat: "no-repeat",
