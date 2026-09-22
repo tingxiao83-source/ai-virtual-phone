@@ -15,7 +15,7 @@ function load(name) {
 const { resolveAppModelConfig: route } = load('app-model-routing');
 const { buildProviderRequest: build } = load('llm-provider-adapter');
 const base = Object.freeze({ id: 'test', provider: 'Google', apiKey: 'dummy-test-only', defaultModel: 'gemini-2.5-pro', enableNativeTools: true, enableImageRecognition: true, enableImageGeneration: false });
-const cases = { story: 'gemini-2.5-pro', chat: 'gemini-2.5-flash', group_chat: 'gemini-2.5-flash', shopping: 'gemini-2.5-flash-lite', shopping_search: 'gemini-2.5-flash-lite', xiaohongshu: 'gemini-2.5-flash-lite', checkphone: 'gemini-2.5-flash-lite', diary: 'gemini-2.5-flash-lite', calendar: 'gemini-2.5-flash-lite', qa: 'gemini-2.5-flash-lite', mascot: 'gemini-2.5-flash-lite', background: 'gemini-2.5-flash-lite' };
+const cases = { story: 'gemini-2.5-pro', chat: 'gemini-3.8-flash', group_chat: 'gemini-3.8-flash', shopping: 'gemini-3.5-flash-lite', shopping_search: 'gemini-3.5-flash-lite', xiaohongshu: 'gemini-3.5-flash-lite', checkphone: 'gemini-3.5-flash-lite', diary: 'gemini-3.5-flash-lite', calendar: 'gemini-3.5-flash-lite', qa: 'gemini-3.5-flash-lite', mascot: 'gemini-3.5-flash-lite', background: 'gemini-3.5-flash-lite' };
 for (const [app, model] of Object.entries(cases)) {
   const config = route(base, app);
   assert.equal(config.defaultModel, model);
@@ -26,6 +26,8 @@ for (const [app, model] of Object.entries(cases)) {
 assert.equal(route(base, 'story'), base);
 assert.equal(route(base, 'api_test'), base);
 assert.equal(route(base, 'embedding'), base);
+assert.equal(route({...base, defaultModel:'gemini-2.5-flash'}, 'chat').defaultModel, 'gemini-3.8-flash');
+assert.equal(route({...base, defaultModel:'gemini-2.5-flash-lite'}, 'background').defaultModel, 'gemini-3.5-flash-lite');
 for (const model of ['gemini-2.5-flash-image','gemini-2.5-pro-preview-tts','gemini-embedding-001','gemini-2.5-flash-native-audio-preview']) {
   const config = {...base, defaultModel: model}; assert.equal(route(config, 'story'), config);
 }
@@ -34,7 +36,7 @@ assert.equal(route(other, 'chat'), other);
 const existingPro = {...base, defaultModel:'gemini-3.1-pro-preview'};
 assert.equal(route(existingPro, 'story'), existingPro);
 const router = {...base, provider:'OpenRouter', defaultModel:'google/gemini-2.5-pro'};
-assert.equal(route(router, 'shopping').defaultModel, 'google/gemini-2.5-flash-lite');
+assert.equal(route(router, 'shopping').defaultModel, 'google/gemini-3.5-flash-lite');
 
 // Execute the real four dispatch functions up to actual provider payload creation.
 // Throw at the network boundary: these tests make no paid requests.
@@ -59,9 +61,9 @@ new Function('exports','resolveAppModelConfig','applyChatPluginLlmRequest','toLl
   console.log=()=>{};
   global.fetch=async(url)=>{captured=String(url);return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'ok'}]}}]}),{status:200,headers:{'Content-Type':'application/json'}});};
   await load('api-helpers').simpleLLMCall(base,[{role:'user',content:'test'}]);
-  assert.ok(captured.includes('/models/gemini-2.5-flash-lite:'));
+  assert.ok(captured.includes('/models/gemini-3.5-flash-lite:'));
   await load('api-helpers').simpleLLMCall(base,[{role:'user',content:'test'}],{appId:'api_test'});
   assert.ok(captured.includes('/models/gemini-2.5-pro:'));
  } finally {global.fetch=originalFetch;console.log=originalLog;}
- console.log('Passed: 48 real dispatch/payload cases; tier preservation, gateway namespaces, dedicated models, auxiliary calls and API-test isolation. No network requests.');
+ console.log('Passed: 48 real dispatch/payload cases; Flash upgrades, tier preservation, gateway namespaces, dedicated models, auxiliary calls and API-test isolation. No network requests.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
