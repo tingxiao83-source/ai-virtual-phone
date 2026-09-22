@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 // lib/mascot-engine.ts
 // 小卷 LLM 引擎：双协议（原生工具 + 文本协议），agent 循环由 UI 层驱动。
 
@@ -28,7 +29,7 @@ import { sendLLMToolStreamRequest, type LLMToolRequestResult } from "./chat-engi
 function requireMascotApiConfig() {
     const apiConfig = resolveAuxiliaryApiConfig("mascotApiConfigId");
     if (!apiConfig) throw new Error("请先在设置 → 绑定配置 → 全局配置中设置 API，或在辅助 API 中设置小卷助手 API");
-    return apiConfig;
+    return resolveAppModelConfig(apiConfig, "mascot");
 }
 
 // ── 类型 ─────────────────────────────────────────────

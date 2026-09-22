@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 // lib/chat-engine.ts
 
 import { createSseJsonParser } from "./sse-json";
@@ -800,6 +801,7 @@ export async function sendLLMStreamRequest(
     },
     callbacks?: ChatCompletionStreamCallbacks,
 ): Promise<ChatCompletionStreamResult> {
+    config = resolveAppModelConfig(config, options?.appId);
     const pluginPurpose = options?.appId ?? "chat";
     const afterPlugins = await applyChatPluginLlmRequest(preset, messages, pluginPurpose, options?.debugSessionId);
     const effectivePreset = afterPlugins.preset;
@@ -902,6 +904,7 @@ export async function sendLLMRequest(
         signal?: AbortSignal;
     },
 ): Promise<string> {
+    config = resolveAppModelConfig(config, options?.appId);
     const pluginPurpose = options?.appId ?? "chat";
     const afterPlugins = await applyChatPluginLlmRequest(preset, messages, pluginPurpose, options?.debugSessionId);
     const effectivePreset = afterPlugins.preset;
@@ -1098,6 +1101,7 @@ export async function sendLLMToolStreamRequest(
     callbacks?: ChatCompletionStreamCallbacks,
 ): Promise<LLMToolRequestResult> {
     void regexes;
+    config = resolveAppModelConfig(config, options?.appId);
     const pluginPurpose = options?.appId ?? "chat";
     const afterPlugins = await applyChatPluginLlmRequest(preset, messages, pluginPurpose, options?.debugSessionId);
     const effectivePreset = afterPlugins.preset;
@@ -1252,6 +1256,7 @@ export async function sendLLMToolRequest(
         signal?: AbortSignal;
     },
 ): Promise<LLMToolRequestResult> {
+    config = resolveAppModelConfig(config, options?.appId);
     const pluginPurpose = options?.appId ?? "chat";
     const afterPlugins = await applyChatPluginLlmRequest(preset, messages, pluginPurpose, options?.debugSessionId);
     const effectivePreset = afterPlugins.preset;
@@ -1789,8 +1794,9 @@ export async function buildChatPromptMessages(
     }
 
     const apiConfigs = loadApiConfigs();
-    const config = apiConfigs.find(c => c.id === activeSlot.apiConfigId);
+    let config = apiConfigs.find(c => c.id === activeSlot.apiConfigId);
     if (!config) throw new ChatEngineError(`API Configuration not found for ${character.name}.`);
+    config = resolveAppModelConfig(config, resolvedAppId);
 
     const presets = loadPresets();
     let preset = activeSlot.presetId ? presets.find(p => p.id === activeSlot.presetId) || null : null;

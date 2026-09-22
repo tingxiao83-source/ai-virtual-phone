@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 // 现实桥离线联动·客户端同步器：
 // 把规则/云配置/触发状态 + 每条「让TA回话」规则的 prompt 快照（带占位哨兵）
 // 同步到服务端。快照用前台同一条组装链路构建，服务端只做占位符替换。
@@ -148,7 +149,7 @@ async function buildRuleSnapshot(rule: BridgeRule): Promise<Record<string, unkno
                 const promptWithSentinel = rule.process.prompt
                     .replace(/\{payload\}/g, BRIDGE_EVENT_SENTINEL)
                     .replace(/\{type\}/g, rule.matchType === "*" ? "数据" : rule.matchType);
-                const processReq = buildProviderRequest(auxConfig, null, [
+                const processReq = buildProviderRequest(resolveAppModelConfig(auxConfig, "background"), null, [
                     { role: "system", content: "你是「现实桥」的数据加工器。按用户指令处理数据，只输出处理结果本身，不要解释。" },
                     { role: "user", content: `${promptWithSentinel}\n\n数据内容：${BRIDGE_EVENT_SENTINEL}` },
                 ]);

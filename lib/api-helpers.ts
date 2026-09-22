@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 // lib/api-helpers.ts
 // Unified API helpers — single source of truth for provider URL resolution,
 // request headers, and response parsing. All LLM-calling modules should use these.
@@ -98,8 +99,9 @@ export function isNativeGoogleApi(config: ApiConfig): boolean {
 export async function simpleLLMCall(
     config: ApiConfig,
     messages: { role: string; content: string }[],
-    options?: { temperature?: number; max_tokens?: number; signal?: AbortSignal; label?: string },
+    options?: { temperature?: number; max_tokens?: number; signal?: AbortSignal; label?: string; appId?: string },
 ): Promise<{ content: string | null; error?: string; finishReason?: string; wasTruncated?: boolean }> {
+    config = resolveAppModelConfig(config, options?.appId ?? "background");
     const baseUrl = determineBaseUrl(config);
     if (!baseUrl || !config.apiKey) {
         return { content: null, error: "API 地址或密钥无效" };

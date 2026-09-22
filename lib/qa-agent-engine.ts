@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 import {
     buildProviderRequest,
     nativeToolProtocolForConfig,
@@ -48,14 +49,14 @@ export function resolveQaApiConfig(): ApiConfig | null {
     const qaId = binding.qaApiConfigId;
     if (qaId) {
         const found = apiConfigs.find((c) => c.id === qaId);
-        if (found) return found;
+        if (found) return resolveAppModelConfig(found, "qa");
     }
     const globalId = binding.globalDefaults.apiConfigId;
     if (globalId) {
         const found = apiConfigs.find((c) => c.id === globalId);
-        if (found) return found;
+        if (found) return resolveAppModelConfig(found, "qa");
     }
-    return apiConfigs[0] ?? null;
+    return apiConfigs[0] ? resolveAppModelConfig(apiConfigs[0], "qa") : null;
 }
 
 function requireQaApiConfig(): ApiConfig {

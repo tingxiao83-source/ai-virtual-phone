@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 import { loadCharacters } from "./character-storage";
 import {
   loadBindingConfig,
@@ -115,7 +116,7 @@ function resolveStoryConfigs(characterId: string): {
   const summaryTag = preset?.story_summary_tag?.trim() || "summary";
 
   return {
-    apiConfig,
+    apiConfig: resolveAppModelConfig(apiConfig, "story"),
     preset,
     regexes,
     worldBooks,

@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 // lib/group-chat-engine.ts
 // Group chat engine: single API call for all characters.
 
@@ -303,8 +304,9 @@ async function buildGroupChatPromptMessages(
     const apiConfigs = loadApiConfigs();
     const boundConfigId = options?.apiConfigId || activeSlot.apiConfigId;
     if (!boundConfigId) throw new ChatEngineError("No API Configuration bound for group chat.");
-    const config = apiConfigs.find(c => c.id === boundConfigId);
+    let config = apiConfigs.find(c => c.id === boundConfigId);
     if (!config) throw new ChatEngineError("API Configuration not found for group chat.");
+    config = resolveAppModelConfig(config, "group_chat");
 
     const presets = loadPresets();
     let preset = activeSlot.presetId ? presets.find(p => p.id === activeSlot.presetId) || null : null;

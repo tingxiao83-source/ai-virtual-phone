@@ -1,3 +1,4 @@
+import { resolveAppModelConfig } from "./app-model-routing";
 import type { ChatMessage, ChatSession } from "./chat-storage";
 import {
   createOrGetSession,
@@ -629,10 +630,11 @@ export async function buildWeixinCloudRuntimeSnapshot(
   const bindings = loadBindingConfig();
   const bindingSlot = resolveBinding(bindings, character.id, "chat");
 
-  const apiConfig = bindingSlot.apiConfigId
+  let apiConfig = bindingSlot.apiConfigId
     ? loadApiConfigs().find(item => item.id === bindingSlot.apiConfigId)
     : undefined;
   if (!apiConfig) throw new Error(`角色「${character.name}」没有绑定可用于聊天的 API 配置。`);
+  apiConfig = resolveAppModelConfig(apiConfig, "chat");
 
   const voiceConfig = bindingSlot.voiceConfigId
     ? loadVoiceConfigs().find(item => item.id === bindingSlot.voiceConfigId) ?? null

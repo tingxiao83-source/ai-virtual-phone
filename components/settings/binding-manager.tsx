@@ -961,6 +961,10 @@ export function BindingManager() {
 
     return (
         <div className="flex flex-col gap-[24px]">
+            <p className="text-xs text-gray-500 leading-relaxed">
+                Gemini 文字生成按用途分配：剧情 Pro；单聊、群聊 Flash；购物、小红书及其他文字功能 Flash-Lite。
+                已符合档位的模型保留，其他使用 Gemini 2.5 对应型号。API 绑定仍决定密钥和服务地址。
+            </p>
             {/* Level 1: Global defaults + character action */}
             {level === "global" && (
                 <>

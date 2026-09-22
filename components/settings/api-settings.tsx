@@ -190,7 +190,7 @@ export function ApiSettings() {
                 // tokens on hidden reasoning first, so a tiny cap leaves the visible
                 // content empty and the test falsely fails (finishReason=length).
                 // 4096 covers heavy thinkers; a "你好" reply still stops well before it.
-                { temperature: 0.2, max_tokens: 4096 },
+                { temperature: 0.2, max_tokens: 4096, appId: "api_test" },
             );
             if (result.error || !result.content) {
                 throw new Error(result.error || "模型返回了空内容");
