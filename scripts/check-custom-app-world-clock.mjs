@@ -9,12 +9,12 @@ const source = fs.readFileSync(runnerPath, "utf8");
 const marker = "// CUSTOM_APP_WORLD_CLOCK_V1";
 const start = source.indexOf(marker);
 if (start < 0) throw new Error("World clock patch marker is missing");
-const clockStart = source.lastIndexOf("(function installAiPhoneWorldClock(){", start + marker.length);
+const clockStart = source.indexOf("(function installAiPhoneWorldClock(){", start);
 const clockEndMarker = "  })();";
 const clockEnd = source.indexOf(clockEndMarker, clockStart);
 if (clockStart < 0 || clockEnd < 0) throw new Error("Unable to extract world clock bootstrap");
 
-let bootstrap = source.slice(clockStart, clockEnd + clockEndMarker.trim().length);
+let bootstrap = source.slice(clockStart, clockEnd + clockEndMarker.length);
 bootstrap = bootstrap.replace("${STORY_CALENDAR_YEAR}", "1989");
 
 const testWindow = {
