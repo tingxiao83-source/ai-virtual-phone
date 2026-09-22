@@ -74,7 +74,9 @@ export async function askCharacterToDecideOfflineInvitation(invitation: OfflineI
     session,
     [...history, request],
     {
-      appId: "offline-date",
+      // Reuse the character's existing chat binding/model. "offline-date" remains
+      // an app tag/context signal, so no extra API/model binding is required.
+      appId: "chat",
       appTags: ["chat", "offline-date", "1989"],
       toolsAllowed: false,
       worldBookActivationContext: `${activity.title} ${invitation.location} 1989 线下邀约`,
@@ -82,7 +84,7 @@ export async function askCharacterToDecideOfflineInvitation(invitation: OfflineI
   );
   const raw = flattenCompletionResult(result).trim();
   const decision = parseDecision(raw);
-  if (!decision) throw new Error("角色这次没有给出明确的接受或拒绝答复，可以重新邀请。 ");
+  if (!decision) throw new Error("角色这次没有给出明确的接受或拒绝答复，可以重新邀请。");
 
   const saved = respondToOfflineInvitation(invitation.id, decision.accepted, decision.reply);
   if (!saved.ok) throw new Error(saved.error || "保存角色答复失败。");
