@@ -4,11 +4,13 @@ import { DEFAULT_OFFLINE_ACTIVITIES, type OfflineInvitation } from "./offline-da
 import {
   appendOfflineDateTurn,
   loadOfflineDateTurns,
+  type OfflineDateEmotion,
   type OfflineDateTurn,
 } from "./offline-date-chat-storage";
 
 export type OfflineDateChatResult = {
   text: string;
+  emotion: OfflineDateEmotion;
   model: string;
   presetName: string;
 };
@@ -46,7 +48,10 @@ function sceneSystemMessage(invitation: OfflineInvitation, sessionId: string): C
       "不要给用户列回复选项，不要问用户从A/B/C里选，不要输出菜单。用户会自己输入想说的话。",
       "不要跳过大量时间，不要擅自结束约会。每轮自然推进一点点，让用户有机会继续回应。",
       "回复保持适合乙女游戏对话框阅读的长度，通常1到4个短段落。",
-      "只输出角色在当前场景中的正文，不解释这些规则，不输出JSON，不输出系统说明。",
+      "为了驱动立绘表情，每次回复第一行最前面必须先输出且只输出一个界面标记，格式严格为 [[emotion:VALUE]]。",
+      "VALUE 只能是 calm、smile、warm、frown、weary 之一：calm=平静克制，smile=明显微笑，warm=温柔关心，frown=皱眉严肃或生气，weary=无奈疲惫。",
+      "标记后紧接角色正文。界面会自动隐藏这个标记，用户不会看到。",
+      "除这个 emotion 标记外，只输出角色在当前场景中的正文，不解释这些规则，不输出JSON，不输出系统说明。",
     ].join("\n"),
   };
 }
@@ -70,12 +75,15 @@ function buildSceneHistory(invitation: OfflineInvitation, sessionId: string): Ch
   ];
 }
 
-function cleanDateReply(text: string): string {
-  return text
+function parseDateReply(raw: string): { text: string; emotion: OfflineDateEmotion } {
+  let text = String(raw ?? "")
     .replace(/^```(?:text|markdown)?\s*/i, "")
     .replace(/\s*```$/i, "")
-    .trim()
-    .slice(0, 5000);
+    .trim();
+  const match = text.match(/^\s*\[\[emotion:(calm|smile|warm|frown|weary)\]\]\s*/i);
+  const emotion = (match?.[1]?.toLowerCase() as OfflineDateEmotion | undefined) ?? "calm";
+  if (match) text = text.slice(match[0].length);
+  return { text: text.trim().slice(0, 5000), emotion };
 }
 
 export async function generateOfflineDateOpening(invitation: OfflineInvitation): Promise<OfflineDateChatResult> {
@@ -83,7 +91,12 @@ export async function generateOfflineDateOpening(invitation: OfflineInvitation):
   if (existing.length > 0) {
     const lastAssistant = [...existing].reverse().find(turn => turn.role === "assistant");
     if (lastAssistant) {
-      return { text: lastAssistant.content, model: "gemini-3.8-flash", presetName: "" };
+      return {
+        text: lastAssistant.content,
+        emotion: lastAssistant.emotion ?? "calm",
+        model: "gemini-3.8-flash",
+        presetName: "",
+      };
     }
   }
 
@@ -96,14 +109,14 @@ export async function generateOfflineDateOpening(invitation: OfflineInvitation):
     role: "user",
     status: "sent",
     createdAt: new Date().toISOString(),
-    content: `【场景开始提示】${activity?.title ?? invitation.location}刚刚开始。请由${invitation.characterName}根据当前关系和环境，自然地做出第一个动作或说第一句话。不要替用户说话，不要提供回复选项。`,
+    content: `【场景开始提示】${activity?.title ?? invitation.location}刚刚开始。请由${invitation.characterName}根据当前关系和环境，自然地做出第一个动作或说第一句话。不要替用户说话，不要提供回复选项。记得先输出 emotion 标记。`,
   });
 
   const result = await generateOfflineChatCompletion(session, history);
-  const text = cleanDateReply(result.content);
-  if (!text) throw new Error("角色这次没有生成有效的约会开场，可以再试一次。");
-  appendOfflineDateTurn(invitation.id, "assistant", text);
-  return { text, model: result.model, presetName: result.presetName };
+  const parsed = parseDateReply(result.content);
+  if (!parsed.text) throw new Error("角色这次没有生成有效的约会开场，可以再试一次。");
+  appendOfflineDateTurn(invitation.id, "assistant", parsed.text, parsed.emotion);
+  return { text: parsed.text, emotion: parsed.emotion, model: result.model, presetName: result.presetName };
 }
 
 export async function sendOfflineDateMessage(
@@ -118,8 +131,8 @@ export async function sendOfflineDateMessage(
   const history = buildSceneHistory(invitation, session.id);
 
   const result = await generateOfflineChatCompletion(session, history);
-  const text = cleanDateReply(result.content);
-  if (!text) throw new Error("角色这次没有生成有效回复，可以重新发送。 ");
-  appendOfflineDateTurn(invitation.id, "assistant", text);
-  return { text, model: result.model, presetName: result.presetName };
+  const parsed = parseDateReply(result.content);
+  if (!parsed.text) throw new Error("角色这次没有生成有效回复，可以重新发送。 ");
+  appendOfflineDateTurn(invitation.id, "assistant", parsed.text, parsed.emotion);
+  return { text: parsed.text, emotion: parsed.emotion, model: result.model, presetName: result.presetName };
 }
