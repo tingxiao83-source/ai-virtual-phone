@@ -10,12 +10,14 @@ const OFFLINE_DATE_CHAT_KEY = "ai_phone_offline_date_chat_v1";
 registerKvMigration(OFFLINE_DATE_CHAT_KEY);
 
 export type OfflineDateTurnRole = "user" | "assistant";
+export type OfflineDateEmotion = "calm" | "smile" | "warm" | "frown" | "weary";
 
 export type OfflineDateTurn = {
   id: string;
   invitationId: string;
   role: OfflineDateTurnRole;
   content: string;
+  emotion?: OfflineDateEmotion;
   createdAt: string;
 };
 
@@ -28,6 +30,11 @@ function cleanText(value: unknown, maxLength: number): string {
   return String(value ?? "").replace(/\u0000/g, "").trim().slice(0, maxLength);
 }
 
+function normalizeEmotion(value: unknown): OfflineDateEmotion | undefined {
+  if (value === "calm" || value === "smile" || value === "warm" || value === "frown" || value === "weary") return value;
+  return undefined;
+}
+
 function normalizeTurn(value: unknown): OfflineDateTurn | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
@@ -35,13 +42,14 @@ function normalizeTurn(value: unknown): OfflineDateTurn | null {
   const invitationId = cleanText(record.invitationId, 140);
   const role = record.role === "assistant" ? "assistant" : record.role === "user" ? "user" : null;
   const content = cleanText(record.content, 8000);
+  const emotion = normalizeEmotion(record.emotion);
   const createdAtRaw = cleanText(record.createdAt, 80);
   const createdAtDate = new Date(createdAtRaw);
   const createdAt = createdAtRaw && !Number.isNaN(createdAtDate.getTime())
     ? createdAtDate.toISOString()
     : new Date().toISOString();
   if (!id || !invitationId || !role || !content) return null;
-  return { id, invitationId, role, content, createdAt };
+  return { id, invitationId, role, content, ...(emotion ? { emotion } : {}), createdAt };
 }
 
 function loadState(): OfflineDateChatState {
@@ -83,6 +91,7 @@ export function appendOfflineDateTurn(
   invitationId: string,
   role: OfflineDateTurnRole,
   content: string,
+  emotion?: OfflineDateEmotion,
 ): OfflineDateTurn {
   const text = cleanText(content, 8000);
   if (!text) throw new Error("不能保存空白约会对话。");
@@ -91,6 +100,7 @@ export function appendOfflineDateTurn(
     invitationId,
     role,
     content: text,
+    ...(emotion ? { emotion } : {}),
     createdAt: new Date().toISOString(),
   };
   const state = loadState();
