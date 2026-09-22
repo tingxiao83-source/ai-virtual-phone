@@ -123,8 +123,51 @@ function patchChatBusyContext() {
   write(rel, source);
 }
 
+function patchStoryBusyContext() {
+  const rel = "lib/story-engine.ts";
+  let source = read(rel);
+  if (!source.includes('import { buildOfflineBusyPrompt } from "./offline-date-storage";')) {
+    source = replaceOnce(
+      source,
+      'import { MacroEngine } from "./macro-engine";',
+      'import { MacroEngine } from "./macro-engine";\nimport { buildOfflineBusyPrompt } from "./offline-date-storage";',
+      "story busy import",
+    );
+  }
+  if (!source.includes("const offlineBusyPrompt = buildOfflineBusyPrompt(characterId, now);")) {
+    source = replaceOnce(
+      source,
+      '  return assemblePromptPayload({',
+      '  const promptMessages = assemblePromptPayload({',
+      "story prompt assignment",
+    );
+    source = replaceOnce(
+      source,
+      `    recentBlocks,\n    unifiedRecentItems,\n  });\n}`,
+      `    recentBlocks,\n    unifiedRecentItems,\n  });\n  const offlineBusyPrompt = buildOfflineBusyPrompt(characterId, now);\n  if (offlineBusyPrompt) {\n    promptMessages.push({ role: "system", content: offlineBusyPrompt });\n  }\n  return promptMessages;\n}`,
+      "story busy context injection",
+    );
+  }
+  write(rel, source);
+}
+
+function patchVideoCallAvatar() {
+  const rel = "components/chat/video-call-screen.tsx";
+  let source = read(rel);
+  if (source.includes('transform: callState === "AI_SPEAKING" ? "scale(1.025)" : "scale(1)"')) return;
+  source = replaceOnce(
+    source,
+    `                        style={{\n                            opacity: callState === "CONNECTING" ? 0.5 : 0.85,\n                        }}`,
+    `                        style={{\n                            opacity: callState === "CONNECTING" ? 0.5 : 0.85,\n                            transform: callState === "AI_SPEAKING" ? "scale(1.025)" : "scale(1)",\n                            filter: callState === "AI_SPEAKING" ? "brightness(1.04)" : undefined,\n                            transition: "opacity 500ms ease, transform 700ms ease, filter 300ms ease",\n                        }}`,
+    "video cartoon avatar speaking motion",
+  );
+  write(rel, source);
+}
+
 patchWallet();
 patchShopping();
 patchDesktopShell();
 patchChatBusyContext();
+patchStoryBusyContext();
+patchVideoCallAvatar();
 console.log("[patch-1989-offline-features] applied");
