@@ -53,8 +53,8 @@ function rewrite1989ImportedAppSource(html: string, app: InstalledCustomApp): st
     ];
     for (const [from, to] of replacements) next = next.split(from).join(to);
 
-    // Hard-coded numeric catalogue prices are periodised in source so cart arithmetic,
-    // totals and wallet payment all agree with what is shown on screen.
+    // Periodise hard-coded catalogue values before the imported app executes.
+    // This keeps product cards, cart arithmetic, totals and wallet payment on the same value.
     next = next.replace(/((?:["']?(?:price|unitPrice|salePrice|originalPrice|deliveryFee|shippingFee)["']?)\s*:\s*)(\d+(?:\.\d+)?)/gi, (_match, prefix, raw) => {
       return prefix + String(round1989Price(Number(raw)));
     });
@@ -65,10 +65,10 @@ function rewrite1989ImportedAppSource(html: string, app: InstalledCustomApp): st
   if (isLoverHome) {
     const replacements: Array<[string, string]> = [
       ["朋友圈", "留言簿"], ["微信", "书信"], ["视频通话", "电话"],
-      ["视频聊天", "电话聊天"], ["短信", "留言"], ["手机", "电话"],
-      ["网购", "百货商店采购"], ["淘宝", "百货商店"], ["京东", "百货商店"],
-      ["外卖", "送饭"], ["KTV", "录像厅"], ["自拍", "合影"],
-      ["打卡", "留影"], ["社交媒体", "报刊与书信"], ["APP", "小工具"],
+      ["视频聊天", "电话聊天"], ["短信", "留言"], ["智能手机", "电话"],
+      ["手机", "电话"], ["网购", "百货商店采购"], ["淘宝", "百货商店"],
+      ["京东", "百货商店"], ["外卖", "送饭"], ["KTV", "录像厅"],
+      ["自拍", "合影"], ["打卡", "留影"], ["社交媒体", "报刊与书信"],
     ];
     for (const [from, to] of replacements) next = next.split(from).join(to);
   }
@@ -77,7 +77,13 @@ function rewrite1989ImportedAppSource(html: string, app: InstalledCustomApp): st
 }
 `;
 
-source = source.replace(srcDocAnchor, sourceCompat + "\n" + srcDocAnchor.replace("const body = rewriteAssetRefs(app.entryHtml.trim(), app);", "const body = rewrite1989ImportedAppSource(rewriteAssetRefs(app.entryHtml.trim(), app), app);"));
+source = source.replace(
+  srcDocAnchor,
+  sourceCompat + "\n" + srcDocAnchor.replace(
+    "const body = rewriteAssetRefs(app.entryHtml.trim(), app);",
+    "const body = rewrite1989ImportedAppSource(rewriteAssetRefs(app.entryHtml.trim(), app), app);",
+  ),
+);
 
 const appIdAnchor = '  var appId = ${JSON.stringify(app.id)};\n';
 if (!source.includes(appIdAnchor)) throw new Error("Missing appId bridge anchor");
@@ -93,21 +99,12 @@ const runtimeCompat = String.raw`
   var isLoverHome1989 = compactAppName.indexOf('恋人小屋') >= 0 || compactAppName.indexOf('戀人小屋') >= 0;
   var lastNormalizedText = typeof WeakMap === 'function' ? new WeakMap() : null;
 
-  var jisu1989Rule = '【1989世界一致性】故事世界是中国1989年。界面外壳可以保留应用形式，但世界内容必须符合1989年：商品应是当时真实存在或合理可得的食品、日用品、文具、服装、收音机、磁带、电子表、自行车等；禁止智能手机、互联网、二维码、移动支付、网约车、现代外卖平台、无人机配送、现代网红商品。人民币价格使用1989年量级：普通食品和日用品多为几分、几角到数元，常见耐用品几十到数百元；现金结算，送货由人工/自行车/车辆完成。';
+  var jisu1989Rule = '【1989世界一致性】故事世界是中国1989年。界面外壳可以保留应用形式，但世界内容必须符合1989年：商品应是当时真实存在或合理可得的食品、日用品、文具、服装、收音机、磁带、电子表、自行车等；禁止智能手机、互联网、二维码、移动支付、网约车、现代外卖平台、无人机配送、现代网红商品。人民币价格使用1989年量级：普通食品和日用品多为几分、几角到数元，常见耐用品几十到数百元；现金结算，送货由人工、自行车或普通车辆完成。';
   var lover1989Rule = '【1989世界一致性】故事世界是中国1989年。人物的生活、约会、通讯、消费和环境必须符合当时条件：电话、书信、留言、现金、百货商店/供销社、电影院/录像厅、公交/普通火车、自行车等；禁止微信、朋友圈、智能手机、视频通话、移动支付、网购平台、短视频、网约车、高铁等现代内容。保持既有人设和关系不变。';
-
-  function period1989Price(value){
-    var numeric = Number(value);
-    if (!isFinite(numeric) || numeric <= 0) return numeric <= 0 ? 0 : value;
-    var scaled = Math.max(0.05, Math.min(500, numeric * 0.08));
-    if (scaled < 1) return Number(scaled.toFixed(2));
-    if (scaled < 10) return Number(scaled.toFixed(1));
-    return Math.round(scaled);
-  }
 
   function replace1989Terms(text){
     var next = String(text == null ? '' : text);
-    // World clock fixes programmatic dates; this catches years literally printed in imported packages or AI output.
+    // World clock handles Date/Intl. This catches years literally printed in package text or AI output.
     next = next.replace(/(^|[^0-9])20(?:2[0-9]|3[0-9])(?=[^0-9]|$)/g, '$11989');
     var shared = [
       ['微信支付','现金结算'],['支付宝','现金结算'],['扫码支付','现金结算'],['二维码','票据'],
@@ -126,31 +123,26 @@ const runtimeCompat = String.raw`
         ['洗衣液','洗衣粉'],['抽纸','卫生纸'],['优惠券','优惠票']
       ];
       for (var j=0;j<jisu.length;j++) next = next.split(jisu[j][0]).join(jisu[j][1]);
-      next = next.replace(/([¥￥]\s*)(\d+(?:\.\d+)?)/g, function(_m,prefix,raw){ return prefix + String(period1989Price(raw)); });
-      next = next.replace(/(\d+(?:\.\d+)?)\s*元(?=\s*(?:\/|每|起|$|[，。；、]))/g, function(_m,raw){ return String(period1989Price(raw)) + '元'; });
     }
     if (isLoverHome1989) {
       var lover = [
-        ['朋友圈','留言簿'],['微信','书信'],['视频通话','电话'],['视频聊天','电话聊天'],['短信','留言'],
-        ['手机','电话'],['网购','百货商店采购'],['淘宝','百货商店'],['京东','百货商店'],['外卖','送饭'],
-        ['KTV','录像厅'],['自拍','合影'],['打卡','留影'],['社交媒体','报刊与书信']
+        ['朋友圈','留言簿'],['微信','书信'],['视频通话','电话'],['视频聊天','电话聊天'],
+        ['短信','留言'],['智能手机','电话'],['手机','电话'],['网购','百货商店采购'],
+        ['淘宝','百货商店'],['京东','百货商店'],['外卖','送饭'],['KTV','录像厅'],
+        ['自拍','合影'],['打卡','留影'],['社交媒体','报刊与书信']
       ];
       for (var k=0;k<lover.length;k++) next = next.split(lover[k][0]).join(lover[k][1]);
     }
     return next;
   }
 
-  function periodize1989Data(value, keyHint){
+  function periodize1989Data(value){
     if (!(isJisu1989 || isLoverHome1989)) return value;
     if (typeof value === 'string') return replace1989Terms(value);
-    if (typeof value === 'number') {
-      if (isJisu1989 && /^(price|unitprice|saleprice|originalprice|deliveryfee|shippingfee)$/i.test(String(keyHint || ''))) return period1989Price(value);
-      return value;
-    }
-    if (Array.isArray(value)) return value.map(function(item){ return periodize1989Data(item, ''); });
+    if (Array.isArray(value)) return value.map(function(item){ return periodize1989Data(item); });
     if (!value || typeof value !== 'object') return value;
     var out = {};
-    Object.keys(value).forEach(function(key){ out[key] = periodize1989Data(value[key], key); });
+    Object.keys(value).forEach(function(key){ out[key] = periodize1989Data(value[key]); });
     return out;
   }
 
@@ -176,11 +168,7 @@ const runtimeCompat = String.raw`
 
   function prepare1989Request(action, payload){
     if (!(isJisu1989 || isLoverHome1989)) return payload;
-    var next = payload;
-    if (isJisu1989 && /^(db\.(create|update)|wallet\.pay)$/.test(String(action || ''))) {
-      next = periodize1989Data(payload, '');
-      if (String(action) === 'wallet.pay' && next && typeof next.amount === 'number') next.amount = period1989Price(next.amount);
-    }
+    var next = periodize1989Data(payload);
     if (/^ai\.(generate|chat|generateImage|classify)$/.test(String(action || ''))) {
       next = add1989Rule(next, isJisu1989 ? jisu1989Rule : lover1989Rule);
     }
@@ -190,7 +178,7 @@ const runtimeCompat = String.raw`
   function finish1989Result(action, result){
     if (!(isJisu1989 || isLoverHome1989)) return result;
     if (/^(db\.(get|list|create|update)|ai\.(generate|chat|classify))$/.test(String(action || ''))) {
-      return periodize1989Data(result, '');
+      return periodize1989Data(result);
     }
     return result;
   }
@@ -232,7 +220,10 @@ const runtimeCompat = String.raw`
 
 `;
 
-source = source.replace(requestAnchor, runtimeCompat + requestAnchor.replace("{\n", "{\n    payload = prepare1989Request(action, payload);\n"));
+source = source.replace(
+  requestAnchor,
+  runtimeCompat + requestAnchor.replace("{\n", "{\n    payload = prepare1989Request(action, payload);\n"),
+);
 
 const pendingAnchor = "      pending[requestId] = { resolve: resolve, reject: reject };";
 if (!source.includes(pendingAnchor)) throw new Error("Missing pending request anchor");
