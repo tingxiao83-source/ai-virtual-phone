@@ -53,7 +53,7 @@
     "@gltf-transform/core": "^4.3.0",
     "@gltf-transform/extensions": "^4.3.0",
     "@tailwindcss/postcss": "^4.2.1",
-    "@types/d3-delaunay": "^4.4.0",
+    "@types/d3-delaunay": "^6.0.4",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^22.10.1",
     "@types/qrcode": "^1.5.6",
