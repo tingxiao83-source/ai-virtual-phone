@@ -13,6 +13,7 @@ export type IconId =
   | "dwelling"
   | "checkphone"
   | "shopping"
+  | "offline"
   | "calendar"
   | "interview_magazine"
   | "vnmode"
@@ -68,8 +69,8 @@ export const PAGE_2_DEFAULT: IconId[] = [
   "mapmode"
 ];
 
-// 第三页默认图标：右半边 2×2 排布（左半边留给日历组件），位置见 createDefaultDesktopIconLayout
-export const PAGE_3_DEFAULT: IconId[] = ["worldbuilder", "qa", "resource_hub", "realitybridge", "mixology"];
+// 第三页默认图标：右半边向下排布（左半边留给日历组件），位置见 createDefaultDesktopIconLayout
+export const PAGE_3_DEFAULT: IconId[] = ["worldbuilder", "qa", "resource_hub", "realitybridge", "mixology", "offline"];
 
 export const DOCK_DEFAULT: IconId[] = ["settings", "theme", "resources", "characters"];
 
@@ -96,6 +97,7 @@ export const ICONS: Record<IconId, IconMeta> = {
     placeholder: false
   },
   shopping: { id: "shopping", label: "\u8D2D\u7269", tone: "var(--c-icon-amber)", placeholder: false },
+  offline: { id: "offline", label: "线下", tone: "var(--c-icon-coral)", placeholder: false },
   calendar: { id: "calendar", label: "\u65E5\u5386", tone: "var(--c-icon-rose)", placeholder: true },
   interview_magazine: { id: "interview_magazine", label: "在场", tone: "var(--c-icon-lilac)", placeholder: false },
   vnmode: { id: "vnmode", label: "漫卷", tone: "var(--c-icon-rose)", placeholder: false },
