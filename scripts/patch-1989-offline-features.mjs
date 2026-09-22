@@ -164,10 +164,33 @@ function patchVideoCallAvatar() {
   write(rel, source);
 }
 
+function patchWorldBookTemplate() {
+  const rel = "lib/settings-storage.ts";
+  let source = read(rel);
+  if (!source.includes('import { createDefault1989WorldBook, DEFAULT_1989_WORLDBOOK_ID, DEFAULT_1989_WORLDBOOK_NAME } from "./default-1989-worldbook";')) {
+    source = replaceOnce(
+      source,
+      'import { kvGet, kvSet, kvRemove, registerKvMigration } from "./kv-db";',
+      'import { kvGet, kvSet, kvRemove, registerKvMigration } from "./kv-db";\nimport { createDefault1989WorldBook, DEFAULT_1989_WORLDBOOK_ID, DEFAULT_1989_WORLDBOOK_NAME } from "./default-1989-worldbook";',
+      "1989 worldbook import",
+    );
+  }
+  if (!source.includes("worldbook_1989_template_seeded_v1")) {
+    source = replaceOnce(
+      source,
+      `export function loadWorldBooks(): WorldBookConfig[] {\n    if (typeof window === "undefined") return [];\n    return [...readWorldBooksCache()];\n}`,
+      `export function loadWorldBooks(): WorldBookConfig[] {\n    if (typeof window === "undefined") return [];\n    const books = [...readWorldBooksCache()];\n    const seedKey = "worldbook_1989_template_seeded_v1";\n    if (kvGet(seedKey) !== "done") {\n        const alreadyExists = books.some(book => book.id === DEFAULT_1989_WORLDBOOK_ID || book.name === DEFAULT_1989_WORLDBOOK_NAME);\n        const next = alreadyExists ? books : [...books, createDefault1989WorldBook()];\n        if (!alreadyExists) writeWorldBooksCache(next);\n        kvSet(seedKey, "done");\n        return next;\n    }\n    return books;\n}`,
+      "1989 worldbook one-time seed",
+    );
+  }
+  write(rel, source);
+}
+
 patchWallet();
 patchShopping();
 patchDesktopShell();
 patchChatBusyContext();
 patchStoryBusyContext();
 patchVideoCallAvatar();
+patchWorldBookTemplate();
 console.log("[patch-1989-offline-features] applied");
