@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const FLASH_LITE_MODEL = "gemini-2.5-flash-lite";
+const FLASH_LITE_MODEL = "gemini-3.5-flash-lite";
 
 // ---------------------------------------------------------------------------
 // Xiaohongshu: 1989 story-world guard + cheap background model routing
@@ -98,7 +98,7 @@ if (source.includes(oldAssemblerLine)) {
   throw new Error("[patch-xiaohongshu-1989] character prompt assembly marker not found");
 }
 
-// Route every Xiaohongshu request through Gemini 2.5 Flash-Lite while keeping
+// Route every Xiaohongshu request through Gemini 3.5 Flash-Lite while keeping
 // the user's existing Google API key/base URL and other connection settings.
 const xhsApiMarker = "function resolveGlobalApiConfig(): ApiConfig | null {\n";
 const xhsApiHelper = `const XIAOHONGSHU_BACKGROUND_MODEL = "${FLASH_LITE_MODEL}";
