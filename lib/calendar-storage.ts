@@ -14,6 +14,7 @@ import {
   timeToMinutes,
 } from "./calendar-utils";
 import { kvGet, kvSet, registerKvMigration } from "./kv-db";
+import { buildOfflineBusyPrompt } from "./offline-date-storage";
 
 const STORAGE_KEY = "ai_phone_calendar_plans_v1";
 const CALENDAR_CONFIG_KEY = "ai_phone_calendar_config_v1";
@@ -253,18 +254,21 @@ export function getCurrentCalendarScheduleForPrompt(
   const weekStart = getWeekStartIso(now);
   const currentMinute = now.getHours() * 60 + now.getMinutes();
   const plan = loadCalendarWeekPlan(ownerType, ownerId, weekStart);
-  if (!plan) return "无";
 
-  const activeItems = sortScheduleItems(plan.items).filter(item => {
-    if (item.date !== date) return false;
-    const start = timeToMinutes(item.startTime);
-    const end = timeToMinutes(item.endTime);
-    if (Number.isNaN(start) || Number.isNaN(end)) return false;
-    return start <= currentMinute && currentMinute < end;
-  });
+  let calendarContext = "";
+  if (plan) {
+    const activeItems = sortScheduleItems(plan.items).filter(item => {
+      if (item.date !== date) return false;
+      const start = timeToMinutes(item.startTime);
+      const end = timeToMinutes(item.endTime);
+      if (Number.isNaN(start) || Number.isNaN(end)) return false;
+      return start <= currentMinute && currentMinute < end;
+    });
+    calendarContext = activeItems.map(formatCalendarScheduleItemForPrompt).join("；");
+  }
 
-  if (activeItems.length === 0) return "无";
-  return activeItems.map(formatCalendarScheduleItemForPrompt).join("；");
+  const offlineContext = ownerType === "character" ? buildOfflineBusyPrompt(ownerId, now) : "";
+  return [calendarContext, offlineContext].filter(Boolean).join("\n\n") || "无";
 }
 
 /**
@@ -331,8 +335,8 @@ export function normalizeGeneratedScheduleItems(
         id: `calendar_item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         date: item.date,
         weekday: getWeekdayLabel(item.date),
-        startTime: normalizeTime(item.startTime) || item.startTime,
-        endTime: normalizeTime(item.endTime) || item.endTime,
+        startTime: item.startTime,
+        endTime: item.endTime,
         location: item.location.trim(),
         title: item.title.trim(),
         emoji: sanitizeScheduleEmoji(item.emoji),
