@@ -1,7 +1,7 @@
 import type { ApiConfig } from "./settings-types";
 
 export const APP_MODELS = {
-  story: "gemini-2.5-pro",
+  story: "gemini-3.1-pro-preview",
   chat: "gemini-3.8-flash",
   background: "gemini-3.5-flash-lite",
 } as const;
@@ -14,9 +14,10 @@ export function modelTierForApp(appId = "chat"): Tier {
 }
 
 /** Route Gemini text generation only. Never mutate stored credentials or bindings.
- * Flash requests are normalized to the current app defaults; story keeps an
- * already-selected Pro model. Dedicated image, audio and embedding models,
- * non-Gemini providers and API tests are untouched.
+ * Gemini requests are normalized to the current app defaults, including STORY,
+ * so stale Pro bindings such as gemini-2.5-pro are upgraded automatically.
+ * Dedicated image, audio and embedding models, non-Gemini providers and API
+ * tests are untouched.
  */
 export function resolveAppModelConfig<T extends ApiConfig>(config: T, appId = "chat"): T {
   if (appId === "api_test" || appId === "embedding") return config;
@@ -25,10 +26,6 @@ export function resolveAppModelConfig<T extends ApiConfig>(config: T, appId = "c
   if (!gemini && !/^(google|gemini)$/i.test(config.provider.trim())) return config;
   if (/image|tts|audio|embedding|live|robotics|computer-use/i.test(model)) return config;
   const tier = modelTierForApp(appId);
-  const current = /flash-lite/i.test(model) ? "background"
-    : /flash/i.test(model) ? "chat"
-    : /pro/i.test(model) ? "story" : null;
-  if (tier === "story" && current === "story") return config;
   // OpenRouter and compatible gateways may require e.g. google/ and :free.
   const prefix = gemini?.[1] ?? "";
   const suffix = gemini?.[3] ?? "";
