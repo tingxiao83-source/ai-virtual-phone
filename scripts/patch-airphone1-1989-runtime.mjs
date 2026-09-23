@@ -51,7 +51,6 @@ function patchGlobal1989Apps() {
     throw new Error("base custom-app 1989 compatibility layer was not applied first");
   }
 
-  // Apply source-level shared replacements to every installed app, not only two named apps.
   source = source.replace(
     '  if (!isJisu && !isLoverHome) return html;\n\n  let next = html;',
     '  // AIRPHONE1_GLOBAL_1989_V2: every installed app lives in the same 1989 world.\n  let next = html;',
@@ -88,7 +87,7 @@ function patchGlobal1989Apps() {
 
   const replaceAnchor = "    for (var i=0;i<shared.length;i++) next = next.split(shared[i][0]).join(shared[i][1]);";
   if (!source.includes(replaceAnchor)) throw new Error("missing runtime shared replacements anchor");
-  source = source.replace(replaceAnchor, `${replaceAnchor}\n    var globalEra = [\n      ['可乐鸡翅','红烧鸡翅'],['寿喜烧','土豆炖牛肉'],['香煎牛排','葱爆牛肉'],\n      ['奶茶','麦乳精'],['气泡水','汽水'],['无糖可乐','汽水'],['充电宝','电池'],\n      ['蓝牙耳机','便携收音机'],['无线耳机','便携收音机'],['平板电脑','收音机'],\n      ['智能手表','电子表'],['纸尿裤','尿布'],['湿巾','手帕'],['洗衣液','洗衣粉'],\n      ['抽纸','卫生纸'],['KTV','录像厅'],['网购','百货商店采购'],['外卖平台','送饭服务']\n    ];\n    for (var g=0;g<globalEra.length;g++) next = next.split(globalEra[g][0]).join(globalEra[g][1]);\n    next = next.replace(/([¥￥]\\s*)(\\d+(?:\\.\\d+)?)/g, function(_m, prefix, raw){ return prefix + String(round1989Price(Number(raw))); });\n    next = next.replace(/(\\d+(?:\\.\\d+)?)\\s*元(?=\\s*(?:\\/|每|起|$|[，。；、<]))/g, function(_m, raw){ return String(round1989Price(Number(raw))) + '元'; });`);
+  source = source.replace(replaceAnchor, `${replaceAnchor}\n    function runtime1989Price(value){\n      var numeric = Number(value);\n      if (!isFinite(numeric) || numeric <= 0) return numeric <= 0 ? 0 : numeric;\n      var scaled = Math.max(0.05, Math.min(500, numeric * 0.08));\n      if (scaled < 1) return Number(scaled.toFixed(2));\n      if (scaled < 10) return Number(scaled.toFixed(1));\n      return Math.round(scaled);\n    }\n    var globalEra = [\n      ['可乐鸡翅','红烧鸡翅'],['寿喜烧','土豆炖牛肉'],['香煎牛排','葱爆牛肉'],\n      ['奶茶','麦乳精'],['气泡水','汽水'],['无糖可乐','汽水'],['充电宝','电池'],\n      ['蓝牙耳机','便携收音机'],['无线耳机','便携收音机'],['平板电脑','收音机'],\n      ['智能手表','电子表'],['纸尿裤','尿布'],['湿巾','手帕'],['洗衣液','洗衣粉'],\n      ['抽纸','卫生纸'],['KTV','录像厅'],['网购','百货商店采购'],['外卖平台','送饭服务']\n    ];\n    for (var g=0;g<globalEra.length;g++) next = next.split(globalEra[g][0]).join(globalEra[g][1]);\n    next = next.replace(/([¥￥]\\s*)(\\d+(?:\\.\\d+)?)/g, function(_m, prefix, raw){ return prefix + String(runtime1989Price(Number(raw))); });\n    next = next.replace(/(\\d+(?:\\.\\d+)?)\\s*元(?=\\s*(?:\\/|每|起|$|[，。；、<]))/g, function(_m, raw){ return String(runtime1989Price(Number(raw))) + '元'; });`);
 
   if (!source.includes("AIRPHONE1_GLOBAL_1989_V2")) throw new Error("global 1989 patch marker missing");
   write(rel, source);
