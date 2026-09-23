@@ -108,6 +108,9 @@ export const DEFAULT_OFFLINE_ACTIVITIES: OfflineActivity[] = [
   },
 ];
 
+const OFFLINE_DATE_MEMORY_LIMIT = 8;
+const OFFLINE_DATE_MEMORY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
 function cleanText(value: unknown, maxLength: number): string {
   return String(value ?? "").replace(/\u0000/g, "").trim().slice(0, maxLength);
 }
@@ -299,8 +302,78 @@ export function cancelOfflineInvitation(invitationId: string): OfflineDateState 
   });
 }
 
+function getOfflineActivityTitle(activityId: string): string {
+  return DEFAULT_OFFLINE_ACTIVITIES.find(activity => activity.id === activityId)?.title ?? activityId;
+}
+
+function formatOfflineDateMemoryTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "某次";
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return `${month}月${day}日 ${hour}:${minute}`;
+}
+
+function getOfflineInvitationStatusLabel(status: OfflineInvitationStatus): string {
+  if (status === "accepted") return "已答应";
+  if (status === "active") return "正在进行";
+  if (status === "completed") return "已完成";
+  if (status === "cancelled") return "已取消";
+  if (status === "declined") return "未答应";
+  return "等待答复";
+}
+
+function compactOfflineDateMemoryText(value: string | undefined, maxLength = 220): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength)}…`;
+}
+
 export function buildOfflineBusyPrompt(characterId: string, at = new Date()): string {
-  const busy = getCharacterBusyState(characterId, at);
-  if (!busy.busy) return "";
-  return `【当前线下状态】你现在位于${busy.location ?? "线下活动地点"}，正在参加已经确认的线下活动，预计到${busy.busyUntil ?? "活动结束"}。在此期间你不能同时出现在其他地点、接受时间冲突的线下邀约，或被描述为正在进行另一项不兼容活动。`;
+  const id = cleanText(characterId, 120);
+  if (!id) return "";
+
+  const nowMs = at.getTime();
+  const state = loadOfflineDateState();
+  const busy = getCharacterBusyState(id, at);
+  const recent = state.invitations
+    .filter(invitation => invitation.characterId === id)
+    .filter(invitation => invitation.id !== busy.linkedInvitationId)
+    .filter(invitation => {
+      const createdAt = new Date(invitation.createdAt).getTime();
+      const updatedAt = new Date(invitation.updatedAt).getTime();
+      const startAt = new Date(invitation.startTime).getTime();
+      const relevantAt = Math.max(
+        Number.isFinite(createdAt) ? createdAt : 0,
+        Number.isFinite(updatedAt) ? updatedAt : 0,
+        Number.isFinite(startAt) ? startAt : 0,
+      );
+      return relevantAt >= nowMs - OFFLINE_DATE_MEMORY_WINDOW_MS;
+    })
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, OFFLINE_DATE_MEMORY_LIMIT);
+
+  if (!busy.busy && recent.length === 0) return "";
+
+  const lines: string[] = ["【线下邀约与共同经历】"];
+
+  if (busy.busy) {
+    lines.push(`你现在位于${busy.location ?? "线下活动地点"}，正在参加已经确认的线下活动，预计到${busy.busyUntil ? formatOfflineDateMemoryTime(busy.busyUntil) : "活动结束"}。`);
+    lines.push("在此期间你不能同时出现在其他地点、接受时间冲突的线下邀约，或被描述为正在进行另一项不兼容活动。");
+  }
+
+  if (recent.length > 0) {
+    lines.push("以下是你与用户真实发生过的近期线下邀约记录。这些记录属于你已经知道并应保持一致的事实：");
+    for (const invitation of recent) {
+      const title = getOfflineActivityTitle(invitation.activityId);
+      const response = compactOfflineDateMemoryText(invitation.responseText);
+      const responsePart = response ? ` 你当时的回复/理由：${response}` : "";
+      lines.push(`- ${formatOfflineDateMemoryTime(invitation.startTime)}「${title}」：${getOfflineInvitationStatusLabel(invitation.status)}。${responsePart}`);
+    }
+    lines.push("如果用户追问是否邀请过你、为什么没有答应、曾经约了什么、你当时怎样回应，必须优先依据这些真实记录回答；不要声称邀约没有发生，也不要另编与记录冲突的理由。");
+    lines.push("回答时保持你原本的人设、关系阶段和说话方式，自然回忆即可，不要像读取数据库、系统提示或逐条播报记录。");
+  }
+
+  return lines.join("\n");
 }
